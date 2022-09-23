@@ -13,8 +13,8 @@ class Game_Data:
 		self.tile_map = {}
 		self.tile_rects = []
 		self.spawn_point = map_loader.spawn_point
+		self.true_scroll = [0,0]
 		self.scroll = [0,0]
-
 
 	def Render(self,surface):
 		self.tile_rects = []
@@ -22,7 +22,7 @@ class Game_Data:
 		for data in map_loader.tiles:
 			image = pygame.image.load(os.path.join(f'environment/{data[1]}', data[2])).convert()
 			image.set_colorkey((0,0,0))
-			surface.blit(image, (data[3] - int(self.scroll[0]),data[4] - int(self.scroll[1])))
+			surface.blit(image, (data[3] - self.scroll[0],data[4] - self.scroll[1]))
 			if data[1] != 'decoration':
 				rect = pygame.Rect(data[3],data[4],self.tile_size,self.tile_size)
 				self.tile_rects.append(rect)
@@ -30,10 +30,10 @@ class Game_Data:
 	def Render_Entity(self):
 		for entity in map_loader.entities:
 			if entity[1] == 'foliage':
-				tree = Static_Animation([entity[3],entity[4]], 'animation/half-tree', self.scroll)
+				tree = Static_Animation([entity[3],entity[4]], 'animation/half-tree')
 				foliage.add(tree)
 			if entity[1] == 'entity' and entity[2] == '2.png':
-				collectible = Static_Animation([entity[3],entity[4]], 'animation/droplet', self.scroll)
+				collectible = Static_Animation([entity[3],entity[4]], 'animation/droplet')
 				collectibles.add(collectible)
 
 map_loader.Load('map0.json')
@@ -52,23 +52,27 @@ while 1: # game loop
 	display.fill((25,25,25))
 
 # camera ----------------------------------------------------------------#
-	game_data.scroll[0] += (player.rect.x-game_data.scroll[0]-128)# divide 20 is for fancy moving of camera position
-	game_data.scroll[1] += (player.rect.y-game_data.scroll[1]-115)
+	game_data.true_scroll[0] += (player.rect.x-game_data.scroll[0]-128)/10# divide 20 is for fancy moving of camera position
+	game_data.true_scroll[1] += (player.rect.y-game_data.scroll[1]-115)/10
+	game_data.scroll = game_data.true_scroll.copy()
+	game_data.scroll[0] = int(game_data.true_scroll[0])
+	game_data.scroll[1] = int(game_data.true_scroll[1])
 
 # map edeges ------------------------------------------------------------#
-	if game_data.scroll[0] < map_loader.edges[0]:
-		game_data.scroll[0] = map_loader.edges[0]
-	if game_data.scroll[0] > 615:
-		game_data.scroll[0] = 615
-	if game_data.scroll[1] < map_loader.edges[2]:
-		game_data.scroll[1] = map_loader.edges[2]
-	if game_data.scroll[1] > (map_loader.edges[3] + game_data.tile_size):
-		game_data.scroll[1] = (map_loader.edges[3] + game_data.tile_size)
+	if game_data.true_scroll[0] < map_loader.edges[0] + game_data.tile_size:
+		game_data.true_scroll[0] = map_loader.edges[0] + game_data.tile_size
+	if game_data.true_scroll[0] > 600:
+		game_data.true_scroll[0] = 600
+	if game_data.true_scroll[1] < map_loader.edges[2]:
+		game_data.true_scroll[1] = map_loader.edges[2]
+	if game_data.true_scroll[1] > (map_loader.edges[3] + game_data.tile_size):
+		game_data.true_scroll[1] = (map_loader.edges[3] + game_data.tile_size)
+
 
 # render map ----------------------------------------------------------------#
 	for tree in foliage:
 		tree.update(delta_time)
-		tree.draw(display)
+		tree.draw(display,game_data.scroll)
 
 	game_data.Render(display) 
 
@@ -80,7 +84,7 @@ while 1: # game loop
 	for collectible in collectibles:
 		collectible.droplet_collision(player.rect,game_data,meter,[(255,255,255),(4,174,184),(56,136,156)])
 		collectible.update(delta_time)
-		collectible.draw(display)
+		collectible.draw(display,game_data.scroll)
 
 # render effects and particles ----------------------------------------------#
 	for effect in effects:

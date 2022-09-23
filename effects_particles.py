@@ -15,10 +15,10 @@ class Pulse_Ease_Out(pygame.sprite.Sprite):
 	def update(self,dt):
 		if self.play_animation:
 			if self.radius > self.duration - 20:
-				self.radius_value = 0.5
+				self.radius_value = 0.7
 
 		self.radius += self.radius_value * dt
-		if self.radius > self.duration:
+		if self.radius >= self.duration:
 			self.kill()
 
 	def draw(self,surface):
