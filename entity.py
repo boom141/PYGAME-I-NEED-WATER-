@@ -148,7 +148,7 @@ class Enemy(pygame.sprite.Sprite):
 		return hit_list
 	
 	def move(self,delta_time,game_data):
-	
+# enemy movements and state  ---------------------------------------------------------------------#	
 		if self.idling == False and random.randint(1,200) == 1:
 			self.idling = True
 			self.idle_countdown = 50
