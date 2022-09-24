@@ -35,6 +35,9 @@ class Game_Data:
 			if entity[1] == 'entity' and entity[2] == '2.png':
 				collectible = Static_Animation([entity[3],entity[4]], 'animation/droplet')
 				collectibles.add(collectible)
+			if entity[1] == 'entity' and entity[2] == '1.png':
+				enemy = Enemy([entity[3],entity[4]])
+				enemies.add(enemy)
 
 map_loader.Load('map0.json')
 game_data = Game_Data()
@@ -79,6 +82,10 @@ while 1: # game loop
 # render entity -------------------------------------------------------------# 	
 	player.update(delta_time, game_data.tile_rects, game_data.scroll)
 	player.draw(display)
+
+	for enemy in enemies:
+		enemy.update(delta_time,game_data)
+		enemy.draw(display,game_data.scroll)
 
 # render collectibles -------------------------------------------------------#
 	for collectible in collectibles:
