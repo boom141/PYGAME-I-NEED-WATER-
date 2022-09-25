@@ -13,7 +13,7 @@ class Static_Animation(pygame.sprite.Sprite):
 	
 	def droplet_collision(self,player_rect,game_data,meter,color):
 		if player_rect.colliderect(self.rect):
-			meter.rect.width += 5
+			meter.rect.width += 10
 			pulse1 = Pulse_Ease_Out([player_rect.centerx - game_data.scroll[0],player_rect.centery - game_data.scroll[1]],[5,4,60],((245,237,186)),True)
 			pulse2 = Pulse_Ease_Out([player_rect.centerx - 3 - game_data.scroll[0],player_rect.centery - game_data.scroll[1]],[5,2,60],((52,133,157)),True)
 			effects.add(pulse2,pulse1)  

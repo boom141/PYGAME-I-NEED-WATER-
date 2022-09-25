@@ -17,15 +17,14 @@ class Game_Data:
 		self.scroll = [0,0]
 
 	def Render(self,surface):
-		self.tile_rects = []
 		self.tile_map = {}
+		self.tile_rects = []
 		for data in map_loader.tiles:
 			image = pygame.image.load(os.path.join(f'environment/{data[1]}', data[2])).convert()
 			image.set_colorkey((0,0,0))
-			surface.blit(image, (data[3] - self.scroll[0],data[4] - self.scroll[1]))
+			rect = surface.blit(image, (data[3] - self.scroll[0],data[4] - self.scroll[1]))
 			if data[1] != 'decoration':
-				rect = pygame.Rect(data[3],data[4],self.tile_size,self.tile_size)
-				self.tile_rects.append(rect)
+				self.tile_rects.append(pygame.Rect(data[3],data[4],self.tile_size,self.tile_size))
 				self.tile_map[f'{int(rect.x / self.tile_size)}:{int(rect.y / self.tile_size)}'] = 0
 	def Render_Entity(self):
 		for entity in map_loader.entities:
@@ -37,7 +36,8 @@ class Game_Data:
 				collectibles.add(collectible)
 			if entity[1] == 'entity' and entity[2] == '1.png':
 				enemy = Enemy([entity[3],entity[4]])
-				enemies.add(enemy)
+				if len(enemies) == 0:
+					enemies.add(enemy)
 
 map_loader.Load('map0.json')
 game_data = Game_Data()
@@ -84,7 +84,7 @@ while 1: # game loop
 	player.draw(display)
 
 	for enemy in enemies:
-		enemy.update(delta_time,game_data)
+		enemy.update(delta_time,game_data,player)
 		enemy.draw(display,game_data.scroll)
 
 # render collectibles -------------------------------------------------------#
@@ -101,7 +101,12 @@ while 1: # game loop
 	for particle in particles:
 		particle.update(delta_time)
 		particle.draw(display)
-	
+
+	for projectile in projectiles:
+		projectile.update(delta_time)
+		projectile.collision(player,meter)
+		projectile.draw(display)
+
 # render meter --------------------------------------------------------------#
 	meter.update(delta_time)
 	meter.draw(display)

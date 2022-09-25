@@ -1,3 +1,4 @@
+from turtle import position
 import pygame, os, random
 from effects_particles import*
 from sprite_groups import*
@@ -11,7 +12,7 @@ class Player(pygame.sprite.Sprite):
 		self.image = pygame.image.load(os.path.join('animation/player-idle', 'player_idle_right0.png'))
 		self.image_copy = self.image
 		self.rect = self.image.get_rect(x=position[0], y=position[1])
-		self.hit_box = pygame.Rect(self.rect.x,self.rect.y,50,50)
+		self.hit_box = None
 		self.frames = None
 		self.frame_count = 0
 		self.frame_speed = 0.2
@@ -87,6 +88,8 @@ class Player(pygame.sprite.Sprite):
 
 # collision state ------------------------------------------------------#
 		collisions = self.player_movement(player_move,tile_rects)
+		
+		self.hit_box = self.rect.copy()
 
 		if collisions['bottom']:
 			self.free_fall = 0
@@ -119,7 +122,7 @@ class Player(pygame.sprite.Sprite):
 		# 	self.landing = False
 	
 	def draw(self,surface):
-		#pygame.draw.rect(surface, 'green', (self.rect.x- int(scroll[0]),self.rect.y - int(scroll[1]),self.image.get_width(),self.image.get_height()),1)
+		pygame.draw.rect(surface, 'green', (self.hit_box.x- self.scroll[0],self.hit_box.y - self.scroll[1],self.hit_box.width,self.hit_box.height),1)
 		surface.blit(self.image_copy, (self.rect.x - self.scroll[0],self.rect.y + 3 - self.scroll[1]))
 
 
@@ -130,6 +133,7 @@ class Enemy(pygame.sprite.Sprite):
 		self.image_copy = self.image
 		self.rect = self.image.get_rect(x=position[0], y=position[1])
 		self.border = pygame.Rect(self.rect.x - 16,self.rect.y,64,self.image_copy.get_height())
+		self.hit_box = None
 		self.frames = None
 		self.frame_count = 0
 		self.walk_countdown = 0
@@ -147,14 +151,15 @@ class Enemy(pygame.sprite.Sprite):
 				hit_list.append(tile)
 		return hit_list
 	
-	def move(self,delta_time,game_data):
-# enemy movements and state  ---------------------------------------------------------------------#	
-		if self.idling == False and random.randint(1,200) == 1:
+	def move(self,delta_time,game_data,player):
+# enemy movement and state -----------------------------------------------------------------#	
+		
+		if self.idling == False and random.randint(1,200) == 1 and self.state != 'attack':
 			self.idling = True
 			self.idle_countdown = 50
 
 		move = [0,0]
-		if self.idling == False: 
+		if self.idling == False and self.state != 'attack': 
 			if self.walk_direction:
 				move[0] += 0.5 * delta_time
 			else:
@@ -187,17 +192,37 @@ class Enemy(pygame.sprite.Sprite):
 			elif move[1] < 0:
 				self.rect.top = tile.bottom
 
+# enemy border -------------------------------------------------------------------------#
+		self.rect.width = 30
 		if self.rect.right > self.border.right:
 			self.walk_direction = False
 		if self.rect.left < self.border.left:
 			self.walk_direction = True
 
+# hit box ------------------------------------------------------------------------------#
+		self.hit_box = self.rect.copy()
+		self.hit_box.x = self.rect.x - 25
+		self.hit_box.y = self.rect.y
+		self.hit_box.width = 100
+
+		if self.hit_box.colliderect(player.hit_box):
+			self.state = 'attack'
+			if self.frame_count == 0:
+				projectile = Projectile([self.rect.centerx - game_data.scroll[0],self.rect.centery - game_data.scroll[1]],
+				[4,-2] if self.walk_direction else [-4,-2],game_data,0.1,3)
+				projectiles.add(projectile)
+
+			if player.rect.right > self.hit_box.left and player.rect.right > self.hit_box.right:
+				self.walk_direction = True
+			elif player.rect.right > self.hit_box.left:
+				self.walk_direction = False
+		
 		if collision_types['bottom']:
 			self.vertical_momentum = 0
 
-	def update(self,delta_time,game_data):
+	def update(self,delta_time,game_data,player):
 
-		self.move(delta_time,game_data)
+		self.move(delta_time,game_data,player)
 
 		self.frames = os.listdir(f'animation/enemy-{self.state}')
 		self.frame_count += 0.2 * delta_time
@@ -213,7 +238,7 @@ class Enemy(pygame.sprite.Sprite):
 
 	def draw(self,surface,scroll):
 		surface.blit(self.image_copy, (self.rect.x - scroll[0],self.rect.y + 6 - scroll[1]))
-		# pygame.draw.rect(surface, 'green',(self.rect.x - scroll[0],self.rect.y + 6 - scroll[1], self.image_copy.get_width(), self.image_copy.get_height()), 1)
+		# pygame.draw.rect(surface, 'green',(self.hit_box.x - scroll[0],self.hit_box.y + 6 - scroll[1], self.hit_box.width, self.image_copy.get_height()), 1)
 
 class Meter(pygame.sprite.Sprite):
 	def __init__(self):
@@ -245,3 +270,44 @@ class Meter(pygame.sprite.Sprite):
 	def draw(self,surface):
 		pygame.draw.rect(surface, self.color, self.rect)
 		surface.blit(self.image1,(5,3))
+
+
+class Projectile(pygame.sprite.Sprite):
+	def __init__(self,position,direction,game_data,gravity_value,radius_value):
+		pygame.sprite.Sprite.__init__(self)
+		self.image = pygame.Surface((10,10))
+		self.position = position
+		self.direction = direction
+		self.game_data = game_data
+		self.gravity_value = gravity_value
+		self.gravity = 0
+		self.radius_value = radius_value
+		self.color = [(147,48,59),(31,14,28),(210,100,113)]
+
+	def collision(self,player,meter):
+		loc_str = f'{int(self.position[0] / self.game_data.tile_size)}:{int(self.position[1] / self.game_data.tile_size)}'
+		if loc_str in self.game_data.tile_map :
+			for i in range(50):
+				scatter = Static_Particle([self.position[0], self.position[1]],[random.randrange(-3,3),random.randrange(-3,3)],
+				[random.randint(3,4),0,0.1,0,self.color[random.randint(0,2)]],[0,self.game_data.tile_map,self.game_data.tile_size])
+				effects.add(scatter)
+			self.kill()
+		
+		if self.position[1] > 800:
+			self.kill()
+	
+	def update(self,delta_time):
+		self.position[0] += self.direction[0] * delta_time
+		self.position[1] += self.direction[1] 
+		
+		self.direction[1] += self.gravity * delta_time
+		self.gravity += self.gravity_value
+		
+		self.hit_box = pygame.Rect(self.position[0] - 5,self.position[1] - 5, 10,10)
+		
+	def draw(self,surface):
+		pygame.draw.rect(surface, 'green', self.hit_box, 1)
+		entity = pygame.draw.circle(surface, self.color[random.randint(0,2)], [self.position[0],self.position[1]], self.radius_value)
+		for i in range(30):
+			trail = Static_Particle([entity.centerx,entity.centery],[0,0],[self.radius_value,0,0.5,0,self.color[random.randint(0,2)]],[0,self.game_data.tile_map,self.game_data.tile_size])
+			effects.add(trail)
