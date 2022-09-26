@@ -264,7 +264,7 @@ class Meter(pygame.sprite.Sprite):
 		self.water_meter = pygame.image.load(os.path.join('misc', 'water_meter.png')).convert()
 		self.image1 = pygame.transform.scale(self.water_meter,(105,15))
 		self.image1.set_colorkey((0,0,0))
-		self.rect = pygame.Rect(5,5,self.image1.get_width(),self.image1.get_height()-2)
+		self.rect = pygame.Rect(7,5,self.image1.get_width()-5,self.image1.get_height()-2)
 		self.color = ((56,136,156))
 		self.delay = 10
 		self.seconds = 0

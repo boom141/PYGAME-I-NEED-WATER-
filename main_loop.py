@@ -51,7 +51,7 @@ while 1: # game loop
 	last_time = time.time()
 
 # fill the screen --------------------------------------------------------#  
-	display.fill((25,25,25))
+	display.fill((204,233,241))
 
 # camera ----------------------------------------------------------------#
 	game_data.true_scroll[0] += (player.rect.x-game_data.scroll[0]-128)/10# divide 20 is for fancy moving of camera position
