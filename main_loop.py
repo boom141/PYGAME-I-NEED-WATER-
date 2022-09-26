@@ -36,8 +36,7 @@ class Game_Data:
 				collectibles.add(collectible)
 			if entity[1] == 'entity' and entity[2] == '1.png':
 				enemy = Enemy([entity[3],entity[4]])
-				if len(enemies) == 0:
-					enemies.add(enemy)
+				enemies.add(enemy)
 
 map_loader.Load('map0.json')
 game_data = Game_Data()
@@ -104,8 +103,8 @@ while 1: # game loop
 
 	for projectile in projectiles:
 		projectile.update(delta_time)
-		projectile.collision(player,meter)
 		projectile.draw(display)
+		projectile.collision(player,meter)
 
 # render meter --------------------------------------------------------------#
 	meter.update(delta_time)

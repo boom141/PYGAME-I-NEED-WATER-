@@ -1,3 +1,4 @@
+from math import gamma
 from turtle import position
 import pygame, os, random
 from effects_particles import*
@@ -18,8 +19,10 @@ class Player(pygame.sprite.Sprite):
 		self.frame_speed = 0.2
 		self.walk_direction = True
 		self.landing = False
+		self.hit = False
 		self.double_jump = -1
 		self.vertical_momentum = 0
+		self.horizontal_momentum = 0
 		self.momentum_value = 0.3
 		self.free_fall = 0
 		self.state = None
@@ -74,13 +77,17 @@ class Player(pygame.sprite.Sprite):
 				self.double_jump = 1
 
 # player states -------------------------------------------------------#
-		self.state = 'idle'
-		if self.free_fall > 2:
-			self.state = 'jump'
-		elif player_move[0] > 0 or player_move[0] < 0:
-			self.state = 'walk'
+		if self.hit == False:
+			self.state = 'idle'
+			if self.free_fall > 2:
+				self.state = 'jump'
+			elif player_move[0] > 0 or player_move[0] < 0:
+				self.state = 'walk'
+		else:
+			self.state = 'hit-jump' # more romm to improve
 		
 # player gravity ------------------------------------------------------#
+		player_move[0] += self.horizontal_momentum 
 		player_move[1] += self.vertical_momentum * delta_time
 		self.vertical_momentum += self.momentum_value
 		if self.vertical_momentum > 3:
@@ -90,10 +97,13 @@ class Player(pygame.sprite.Sprite):
 		collisions = self.player_movement(player_move,tile_rects)
 		
 		self.hit_box = self.rect.copy()
+		self.hit_box.width = 10
+		self.hit_box.x = self.hit_box.x + 15
 
 		if collisions['bottom']:
 			self.free_fall = 0
 			self.vertical_momentum = 0
+			self.horizontal_momentum = 0
 			self.double_jump = -1
 		else:
 			self.free_fall += 1
@@ -102,6 +112,7 @@ class Player(pygame.sprite.Sprite):
 		self.frames = os.listdir(f'animation/player-{self.state}')
 		self.frame_count += self.frame_speed * delta_time
 		if self.frame_count >= (len(self.frames) - 1):
+			self.hit = False
 			if self.state == 'jump':
 				self.frame_count = (len(self.frames) - 1)
 			else:
@@ -109,7 +120,8 @@ class Player(pygame.sprite.Sprite):
 
 		if self.vertical_momentum < 0:
 			self.frame_count = 0
-			
+
+
 		self.image = pygame.image.load(os.path.join(f'animation/player-{self.state}', self.frames[int(self.frame_count)])).convert()
 		self.image_copy = pygame.transform.flip(self.image, self.walk_direction, False)
 		self.image_copy = pygame.transform.scale(self.image_copy, (40,30))
@@ -122,7 +134,7 @@ class Player(pygame.sprite.Sprite):
 		# 	self.landing = False
 	
 	def draw(self,surface):
-		pygame.draw.rect(surface, 'green', (self.hit_box.x- self.scroll[0],self.hit_box.y - self.scroll[1],self.hit_box.width,self.hit_box.height),1)
+		# pygame.draw.rect(surface, 'green', (self.hit_box.x- self.scroll[0],self.hit_box.y - self.scroll[1],self.hit_box.width,self.hit_box.height),1)
 		surface.blit(self.image_copy, (self.rect.x - self.scroll[0],self.rect.y + 3 - self.scroll[1]))
 
 
@@ -150,7 +162,23 @@ class Enemy(pygame.sprite.Sprite):
 			if tile.colliderect(enemy_rect):
 				hit_list.append(tile)
 		return hit_list
-	
+
+	def shoot(self,player,game_data):
+		if self.hit_box.colliderect(player.hit_box):
+			self.state = 'attack'
+			
+			if player.rect.right > self.hit_box.left and player.rect.right > self.hit_box.right:
+				self.walk_direction = True
+			elif player.rect.right > self.hit_box.left:
+				self.walk_direction = False
+
+			if self.frame_count == 0:
+				projectile = Projectile([self.rect.centerx - game_data.scroll[0],self.rect.centery - game_data.scroll[1]],
+				[4,-2] if self.walk_direction else [-4,-2],game_data,0.1,3)
+				projectiles.add(projectile)
+
+			
+
 	def move(self,delta_time,game_data,player):
 # enemy movement and state -----------------------------------------------------------------#	
 		
@@ -205,17 +233,7 @@ class Enemy(pygame.sprite.Sprite):
 		self.hit_box.y = self.rect.y
 		self.hit_box.width = 100
 
-		if self.hit_box.colliderect(player.hit_box):
-			self.state = 'attack'
-			if self.frame_count == 0:
-				projectile = Projectile([self.rect.centerx - game_data.scroll[0],self.rect.centery - game_data.scroll[1]],
-				[4,-2] if self.walk_direction else [-4,-2],game_data,0.1,3)
-				projectiles.add(projectile)
-
-			if player.rect.right > self.hit_box.left and player.rect.right > self.hit_box.right:
-				self.walk_direction = True
-			elif player.rect.right > self.hit_box.left:
-				self.walk_direction = False
+		self.shoot(player,game_data)
 		
 		if collision_types['bottom']:
 			self.vertical_momentum = 0
@@ -275,25 +293,38 @@ class Meter(pygame.sprite.Sprite):
 class Projectile(pygame.sprite.Sprite):
 	def __init__(self,position,direction,game_data,gravity_value,radius_value):
 		pygame.sprite.Sprite.__init__(self)
-		self.image = pygame.Surface((10,10))
 		self.position = position
 		self.direction = direction
 		self.game_data = game_data
 		self.gravity_value = gravity_value
 		self.gravity = 0
+		self.hit_box = None
+		self.projectile = None
 		self.radius_value = radius_value
 		self.color = [(147,48,59),(31,14,28),(210,100,113)]
 
 	def collision(self,player,meter):
 		loc_str = f'{int(self.position[0] / self.game_data.tile_size)}:{int(self.position[1] / self.game_data.tile_size)}'
-		if loc_str in self.game_data.tile_map :
+		if loc_str in self.game_data.tile_map:
 			for i in range(50):
 				scatter = Static_Particle([self.position[0], self.position[1]],[random.randrange(-3,3),random.randrange(-3,3)],
-				[random.randint(3,4),0,0.1,0,self.color[random.randint(0,2)]],[0,self.game_data.tile_map,self.game_data.tile_size])
+				[random.randint(3,4),0,0.1,random.randint(0,1),self.color[random.randint(0,2)]],[0,self.game_data.tile_map,self.game_data.tile_size])
 				effects.add(scatter)
 			self.kill()
-		
-		if self.position[1] > 800:
+		elif player.hit_box.right > self.projectile.right:
+			meter.rect.width -= 5
+			player.hit = True
+			player.vertical_momentum = -2
+			player.horizontal_momentum = 2 if player.walk_direction else -2
+			pulse1 = Pulse_Ease_Out([self.position[0], self.position[1]],[5,4,40],((31,14,28)),True)
+			pulse2 = Pulse_Ease_Out([self.position[0], self.position[1]],[4,2,40],((245,237,186)),True)
+			effects.add(pulse1,pulse2)
+			for i in range(20):
+				scatter = Static_Particle([self.position[0], self.position[1]],[random.randrange(-3,3),random.randrange(-3,3)],
+				[random.randint(3,4),0,0.1,random.randint(0,1),self.color[random.randint(0,2)]],[0,self.game_data.tile_map,self.game_data.tile_size])
+				effects.add(scatter)
+			self.kill()
+		elif self.position[1] > 800:
 			self.kill()
 	
 	def update(self,delta_time):
@@ -303,11 +334,8 @@ class Projectile(pygame.sprite.Sprite):
 		self.direction[1] += self.gravity * delta_time
 		self.gravity += self.gravity_value
 		
-		self.hit_box = pygame.Rect(self.position[0] - 5,self.position[1] - 5, 10,10)
-		
 	def draw(self,surface):
-		pygame.draw.rect(surface, 'green', self.hit_box, 1)
-		entity = pygame.draw.circle(surface, self.color[random.randint(0,2)], [self.position[0],self.position[1]], self.radius_value)
+		self.projectile = pygame.draw.circle(surface, self.color[random.randint(0,2)], (self.position[0],self.position[1]), self.radius_value)
 		for i in range(30):
-			trail = Static_Particle([entity.centerx,entity.centery],[0,0],[self.radius_value,0,0.5,0,self.color[random.randint(0,2)]],[0,self.game_data.tile_map,self.game_data.tile_size])
+			trail = Static_Particle([self.projectile.centerx,self.projectile.centery],[0,0],[self.radius_value,0,0.5,0,self.color[random.randint(0,2)]],[0,self.game_data.tile_map,self.game_data.tile_size])
 			effects.add(trail)

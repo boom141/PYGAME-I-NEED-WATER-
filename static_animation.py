@@ -19,7 +19,7 @@ class Static_Animation(pygame.sprite.Sprite):
 			effects.add(pulse2,pulse1)  
 			for i in range(80):
 				disperse = Static_Particle([self.rect.x - game_data.scroll[0],self.rect.y - game_data.scroll[1]],[random.randrange(-5,9),
-				random.randrange(-4,8)],[random.randint(4,6),0,0.3,0,color[random.randint(0,2)]],[0,game_data.tile_map,game_data.tile_size,10])
+				random.randrange(-4,8)],[random.randint(4,6),0,0.3,random.randint(0,1),color[random.randint(0,2)]],[0,game_data.tile_map,game_data.tile_size,10])
 				particles.add(disperse)      
 			self.kill()
 
