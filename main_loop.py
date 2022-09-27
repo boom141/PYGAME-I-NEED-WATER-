@@ -15,7 +15,23 @@ class Game_Data:
 		self.spawn_point = map_loader.spawn_point
 		self.true_scroll = [0,0]
 		self.scroll = [0,0]
-
+		self.image1 = pygame.image.load(os.path.join('bg_image/bg_first_layer.png')).convert()
+		self.image2 = pygame.image.load(os.path.join('bg_image/bg_second_layer.png')).convert()
+		self.image3 = pygame.image.load(os.path.join('bg_image/bg_third_layer.png')).convert()
+	
+	
+	def Render_Background(self,surface):
+		self.img3_copy = self.image3.copy()
+		self.img3_copy.set_colorkey((0,0,0))
+		surface.blit(self.img3_copy, ((map_loader.edges[0] - self.scroll[0]) / 3.5, map_loader.edges[2] + 20 - self.scroll[1]))
+		self.img2_copy = self.image2.copy()
+		self.img2_copy.set_colorkey((0,0,0))
+		surface.blit(self.img2_copy, ((map_loader.edges[0] - self.scroll[0]) / 3, map_loader.edges[2] + 20 - self.scroll[1]))
+		self.img1_copy = self.image1.copy()
+		self.img1_copy.set_colorkey((0,0,0))
+		surface.blit(self.img1_copy, ((map_loader.edges[0] - 100 - self.scroll[0]) / 2, map_loader.edges[2] + 30 - self.scroll[1]))
+	
+	
 	def Render(self,surface):
 		self.tile_map = {}
 		self.tile_rects = []
@@ -36,9 +52,10 @@ class Game_Data:
 				collectibles.add(collectible)
 			if entity[1] == 'entity' and entity[2] == '1.png':
 				enemy = Enemy([entity[3],entity[4]])
-				enemies.add(enemy)
+				# enemies.add(enemy)
+	
 
-map_loader.Load('map0.json')
+map_loader.Load('map1.json')
 game_data = Game_Data()
 game_data.Render_Entity()
 player = Player([game_data.spawn_point[0],game_data.spawn_point[1] - 30])
@@ -51,27 +68,34 @@ while 1: # game loop
 	last_time = time.time()
 
 # fill the screen --------------------------------------------------------#  
-	display.fill((204,233,241))
+	display.fill((25, 25, 25))
 
 # camera ----------------------------------------------------------------#
-	game_data.true_scroll[0] += (player.rect.x-game_data.scroll[0]-128)/10# divide 20 is for fancy moving of camera position
-	game_data.true_scroll[1] += (player.rect.y-game_data.scroll[1]-115)/10
+	game_data.true_scroll[0] += (player.rect.x-game_data.scroll[0]-128)/3# divide 20 is for fancy moving of camera position
+	game_data.true_scroll[1] += (player.rect.y-game_data.scroll[1]-115)/3
 	game_data.scroll = game_data.true_scroll.copy()
 	game_data.scroll[0] = int(game_data.true_scroll[0])
 	game_data.scroll[1] = int(game_data.true_scroll[1])
+	
 
 # map edeges ------------------------------------------------------------#
-	if game_data.true_scroll[0] < map_loader.edges[0] + game_data.tile_size:
-		game_data.true_scroll[0] = map_loader.edges[0] + game_data.tile_size
-	if game_data.true_scroll[0] > 600:
-		game_data.true_scroll[0] = 600
+	if player.rect.left < 320:
+		player.rect.left = 320
+	if player.rect.right > 860:
+		player.rect.right = 860
+
+	if game_data.true_scroll[0] < 348:
+		game_data.true_scroll[0] = 348
+	if game_data.true_scroll[0] > 590:
+		game_data.true_scroll[0] = 590
 	if game_data.true_scroll[1] < map_loader.edges[2]:
 		game_data.true_scroll[1] = map_loader.edges[2]
-	if game_data.true_scroll[1] > (map_loader.edges[3] + game_data.tile_size):
-		game_data.true_scroll[1] = (map_loader.edges[3] + game_data.tile_size)
+	
 
 
 # render map ----------------------------------------------------------------#
+	game_data.Render_Background(display)
+
 	for tree in foliage:
 		tree.update(delta_time)
 		tree.draw(display,game_data.scroll)

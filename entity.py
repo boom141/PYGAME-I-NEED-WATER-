@@ -70,9 +70,13 @@ class Player(pygame.sprite.Sprite):
 			self.walk_direction = True
 		if pygame.key.get_pressed()[K_SPACE]:
 			if self.free_fall < 6:
+				pulse = Pulse_Ease_Out([self.rect.centerx - scroll[0], self.rect.centery + 10 - scroll[1]],[5,1,20],((255,255,255)),True)
+				effects.add(pulse)
 				self.vertical_momentum = -2.5
 				self.double_jump = 0 
-			elif self.free_fall > 0 and self.double_jump == 0:
+			elif self.free_fall > 6 and self.double_jump == 0:
+				pulse = Pulse_Ease_Out([self.rect.centerx - scroll[0], self.rect.centery + 10 - scroll[1]],[5,1,20],((255,255,255)),True)
+				effects.add(pulse)
 				self.vertical_momentum = -3
 				self.double_jump = 1
 
@@ -105,6 +109,7 @@ class Player(pygame.sprite.Sprite):
 			self.vertical_momentum = 0
 			self.horizontal_momentum = 0
 			self.double_jump = -1
+			
 		else:
 			self.free_fall += 1
 
@@ -128,10 +133,10 @@ class Player(pygame.sprite.Sprite):
 		self.image_copy.set_colorkey((0,0,0))
 
 # landing effect ------------------------------------------------------#
-		# if self.landing and self.collision_types['bottom']:
-		# 	landing = Landing([self.rect.x - self.scroll[0],self.rect.y - self.scroll[1]],'animation/landing',[20,-15])
-		# 	effects.add(landing)
-		# 	self.landing = False
+		if self.landing:
+			landing = Landing([self.rect.x - self.scroll[0],self.rect.y - self.scroll[1]],'animation/landing',[20,-15])
+			effects.add(landing)
+			self.landing = False
 	
 	def draw(self,surface):
 		# pygame.draw.rect(surface, 'green', (self.hit_box.x- self.scroll[0],self.hit_box.y - self.scroll[1],self.hit_box.width,self.hit_box.height),1)
@@ -255,8 +260,8 @@ class Enemy(pygame.sprite.Sprite):
 			self.image_copy.set_colorkey((0,0,0))
 
 	def draw(self,surface,scroll):
-		surface.blit(self.image_copy, (self.rect.x - scroll[0],self.rect.y + 6 - scroll[1]))
-		# pygame.draw.rect(surface, 'green',(self.hit_box.x - scroll[0],self.hit_box.y + 6 - scroll[1], self.hit_box.width, self.image_copy.get_height()), 1)
+		surface.blit(self.image_copy, (self.rect.x - scroll[0],self.rect.y - scroll[1]))
+		#pygame.draw.rect(surface, 'green',(self.hit_box.x - scroll[0],self.hit_box.y + 6 - scroll[1], self.hit_box.width, self.image_copy.get_height()), 1)
 
 class Meter(pygame.sprite.Sprite):
 	def __init__(self):
@@ -304,14 +309,7 @@ class Projectile(pygame.sprite.Sprite):
 		self.color = [(147,48,59),(31,14,28),(210,100,113)]
 
 	def collision(self,player,meter):
-		loc_str = f'{int(self.position[0] / self.game_data.tile_size)}:{int(self.position[1] / self.game_data.tile_size)}'
-		if loc_str in self.game_data.tile_map:
-			for i in range(50):
-				scatter = Static_Particle([self.position[0], self.position[1]],[random.randrange(-3,3),random.randrange(-3,3)],
-				[random.randint(3,4),0,0.1,random.randint(0,1),self.color[random.randint(0,2)]],[0,self.game_data.tile_map,self.game_data.tile_size])
-				effects.add(scatter)
-			self.kill()
-		elif player.hit_box.right > self.projectile.right:
+		if player.hit_box.right > self.projectile.right:
 			meter.rect.width -= 5
 			player.hit = True
 			player.vertical_momentum = -2
