@@ -1,5 +1,4 @@
 import os, random
-from setup import*
 from effects_particles import*
 from sprite_groups import*
 from sound_music import*
@@ -77,7 +76,7 @@ class Player(pygame.sprite.Sprite):
 				Sfx_Sound('sfx/jump.wav').play_sound(0)
 				pulse = Pulse_Ease_Out([self.rect.centerx - scroll[0], self.rect.centery + 10 - scroll[1]],[5,1,20],((255,255,255)),True)
 				effects.add(pulse)
-				self.vertical_momentum = -3
+				self.vertical_momentum = -2
 				self.double_jump = 1
 
 # player states -------------------------------------------------------#
@@ -114,7 +113,7 @@ class Player(pygame.sprite.Sprite):
 
 		if self.free_fall > 1:
 			self.landing = True
-
+	
 # player animation ----------------------------------------------------#
 		self.frames = os.listdir(f'animation/player-{self.state}')
 		self.frame_count += self.frame_speed * delta_time
@@ -128,19 +127,19 @@ class Player(pygame.sprite.Sprite):
 		if self.vertical_momentum < 0:
 			self.frame_count = 0
 
-
 		self.image = pygame.image.load(os.path.join(f'animation/player-{self.state}', self.frames[int(self.frame_count)])).convert()
 		self.image_copy = pygame.transform.flip(self.image, self.walk_direction, False)
 		self.image_copy = pygame.transform.scale(self.image_copy, (40,30))
 		self.image_copy.set_colorkey((0,0,0))
 
 # landing effect ------------------------------------------------------#
-		if collisions['bottom'] and self.landing:
-			Sfx_Sound('sfx/landing.wav').play_sound(0)
-			landing = Landing([self.rect.x - self.scroll[0],self.rect.y - self.scroll[1]],'animation/landing',[20,-15])
-			effects.add(landing)
-			self.landing = False
-	
+		if self.landing:
+			if self.free_fall < 2:
+				Sfx_Sound('sfx/landing.wav').play_sound(0)
+				landing = Landing([self.rect.x - self.scroll[0],self.rect.y - self.scroll[1]],'animation/landing',[20,-15])
+				effects.add(landing)
+				self.landing = False
+
 	def draw(self,surface):
 		# pygame.draw.rect(surface, 'green', (self.hit_box.x- self.scroll[0],self.hit_box.y - self.scroll[1],self.hit_box.width,self.hit_box.height),1)
 		surface.blit(self.image_copy, (self.rect.x - self.scroll[0],self.rect.y + 3 - self.scroll[1]))
@@ -161,7 +160,7 @@ class Enemy(pygame.sprite.Sprite):
 		self.idling = False
 		self.walk_direction = True
 		self.vertical_momentum = 0
-		self.state = None
+		self.state = 'walk'
 	
 
 	def collision_test(self,enemy_rect,tile_rects):
@@ -215,10 +214,6 @@ class Enemy(pygame.sprite.Sprite):
 		if self.idle_countdown <= 0:
 			self.idling = False
 
-		move[1] += self.vertical_momentum * delta_time
-		self.vertical_momentum += 0.3
-		if self.vertical_momentum > 3:
-			self.vertical_momentum = 3
 # enemy collsision ---------------------------------------------------------------------#
 		collision_types = {'top':False,'bottom':False,'right':False,'left':False} 
 		self.rect.x += move[0]
@@ -266,8 +261,8 @@ class Enemy(pygame.sprite.Sprite):
 			self.image_copy.set_colorkey((0,0,0))
 
 	def draw(self,surface,scroll):
-		surface.blit(self.image_copy, (self.rect.x - scroll[0],self.rect.y - 10 - scroll[1]))
-		#pygame.draw.rect(surface, 'green',(self.hit_box.x - scroll[0],self.hit_box.y + 6 - scroll[1], self.hit_box.width, self.image_copy.get_height()), 1)
+		surface.blit(self.image_copy, (self.rect.x - scroll[0],self.rect.y - 13 - scroll[1]))
+		#pygame.draw.rect(surface, 'green',(self.hit_box.x - scroll[0],self.hit_box.y - 13 - scroll[1], self.hit_box.width, self.image_copy.get_height()), 1)
 
 class Meter(pygame.sprite.Sprite):
 	def __init__(self):

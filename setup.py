@@ -15,5 +15,4 @@ window = pygame.display.set_mode(WINDOW_SIZE,0,24) # initiate the window
 
 display = pygame.Surface((250,250)) # used as the surface for rendering, which is scaled
 
-last_time = time.time() # initialize delta time
 
