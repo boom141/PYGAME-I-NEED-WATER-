@@ -52,7 +52,7 @@ class Game_Data:
 				collectibles.add(collectible)
 			if entity[1] == 'entity' and entity[2] == '1.png':
 				enemy = Enemy([entity[3],entity[4]])
-				# enemies.add(enemy)
+				enemies.add(enemy)
 	
 
 map_loader.Load('map1.json')
